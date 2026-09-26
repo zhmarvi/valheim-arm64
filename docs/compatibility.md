@@ -44,6 +44,8 @@ Unity's `memorysetup-*` lines are allocator configuration diagnostics, not evide
 
 Valheim's Linux payload includes `libparty.so`, which Unity may inspect even when crossplay is disabled. It imports Ogg functions that must cross Box64's x86_64-to-ARM64 library boundary. The image explicitly installs Debian's ARM64 [`libogg0`](https://packages.debian.org/trixie/libogg0), preloads `libogg.so.0` in the Box64 guest namespace, and enables `ogg_stream_pageout_fill` in [Box64 0.4.4's libogg wrapper declaration](https://github.com/ptitSeb/box64/blob/v0.4.4/src/wrapped/wrappedlibogg_private.h). This prevents the unresolved `ogg_*` relocation errors and the resulting `Failed to open plugin` message.
 
+The same native-wrapper requirement applies to SDL. The image includes both SDL2 and Debian's ARM64 [`libsdl3-0`](https://packages.debian.org/trixie/libsdl3-0), which supplies the `libSDL3.so.0` expected by Box64 and current Valheim payloads.
+
 This library-loading fix does not establish PlayFab compatibility. Keep crossplay disabled unless the join-code and external-client checks above pass on the deployed image.
 
 ## Base image and update policy

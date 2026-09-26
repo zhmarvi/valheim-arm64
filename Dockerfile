@@ -119,6 +119,7 @@ RUN apt-get update \
         libpulse-mainloop-glib0 \
         libpulse0 \
         libsdl2-2.0-0 \
+        libsdl3-0 \
         libssl3t64 \
         libstdc++6 \
         tini \
