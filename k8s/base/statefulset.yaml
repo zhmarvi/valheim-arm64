@@ -1,0 +1,119 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: valheim
+spec:
+  serviceName: valheim-headless
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: valheim
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: valheim
+        app.kubernetes.io/part-of: valheim-arm64
+    spec:
+      terminationGracePeriodSeconds: 120
+      nodeSelector:
+        kubernetes.io/arch: arm64
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: valheim
+          image: valheim-arm64:local
+          imagePullPolicy: Always
+          envFrom:
+            - configMapRef:
+                name: valheim-config
+          env:
+            - name: SERVER_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: valheim-secret
+                  key: server-password
+          ports:
+            - name: game
+              containerPort: 2456
+              protocol: UDP
+            - name: query
+              containerPort: 2457
+              protocol: UDP
+            - name: steam
+              containerPort: 2458
+              protocol: UDP
+          resources:
+            requests:
+              cpu: "1"
+              memory: 2Gi
+            limits:
+              cpu: "4"
+              memory: 6Gi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+          startupProbe:
+            exec:
+              command:
+                - /usr/local/bin/healthcheck.sh
+            failureThreshold: 60
+            periodSeconds: 10
+            timeoutSeconds: 5
+          readinessProbe:
+            exec:
+              command:
+                - /usr/local/bin/healthcheck.sh
+            failureThreshold: 3
+            periodSeconds: 15
+            timeoutSeconds: 5
+          livenessProbe:
+            exec:
+              command:
+                - /usr/local/bin/healthcheck.sh
+            failureThreshold: 3
+            periodSeconds: 30
+            timeoutSeconds: 5
+          volumeMounts:
+            - name: server
+              mountPath: /opt/valheim
+            - name: config
+              mountPath: /config
+            - name: home
+              mountPath: /home/valheim
+            - name: run
+              mountPath: /run/valheim
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: home
+          emptyDir: {}
+        - name: run
+          emptyDir: {}
+        - name: tmp
+          emptyDir: {}
+  volumeClaimTemplates:
+    - metadata:
+        name: server
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 5Gi
+    - metadata:
+        name: config
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 2Gi

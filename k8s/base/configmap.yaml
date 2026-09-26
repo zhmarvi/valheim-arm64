@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: valheim-config
+data:
+  SERVER_NAME: Valheim ARM64
+  WORLD_NAME: Dedicated
+  SERVER_PORT: "2456"
+  SERVER_PUBLIC: "1"
+  SERVER_CROSSPLAY: "false"
+  UPDATE_ON_START: "true"
+  SAVE_INTERVAL: "1800"
+  BACKUPS: "4"
+  BACKUP_SHORT: "7200"
+  BACKUP_LONG: "43200"
