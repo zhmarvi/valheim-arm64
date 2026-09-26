@@ -38,6 +38,14 @@ An open [Box64 issue about Valheim crossplay on Raspberry Pi](https://github.com
 
 If crossplay is mandatory today, test the Windows/Wine route from tsx-cloud on the exact Pi kernel and game release you intend to operate. Do not enable `SERVER_CROSSPLAY=true` here without confirming that a join code appears in the server logs and that an external client can connect.
 
+### Unity and `libparty.so` startup output
+
+Unity's `memorysetup-*` lines are allocator configuration diagnostics, not evidence that Kubernetes or the Pi has run out of memory. An actual allocation failure, OOM kill, or pod eviction will be reported separately by Unity, the container status, or the node.
+
+Valheim's Linux payload includes `libparty.so`, which Unity may inspect even when crossplay is disabled. It imports Ogg functions that must cross Box64's x86_64-to-ARM64 library boundary. The image explicitly installs Debian's ARM64 [`libogg0`](https://packages.debian.org/trixie/libogg0), preloads `libogg.so.0` in the Box64 guest namespace, and enables `ogg_stream_pageout_fill` in [Box64 0.4.4's libogg wrapper declaration](https://github.com/ptitSeb/box64/blob/v0.4.4/src/wrapped/wrappedlibogg_private.h). This prevents the unresolved `ogg_*` relocation errors and the resulting `Failed to open plugin` message.
+
+This library-loading fix does not establish PlayFab compatibility. Keep crossplay disabled unless the join-code and external-client checks above pass on the deployed image.
+
 ## Base image and update policy
 
 The Dockerfile defaults to `arm64v8/debian:trixie-slim`, the ARM64-specific official image for current Debian stable. The tag intentionally follows patched Trixie rebuilds. The scheduled GitHub Actions build refreshes the public image weekly; Box64 and DepotDownloader remain version- and checksum-pinned so compatibility changes are reviewed rather than silently introduced.

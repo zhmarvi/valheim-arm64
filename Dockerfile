@@ -1,5 +1,3 @@
-# syntax=docker/dockerfile:1.7
-
 ARG DEBIAN_IMAGE=arm64v8/debian:trixie-slim
 
 FROM ${DEBIAN_IMAGE} AS box64-builder
@@ -20,12 +18,20 @@ RUN apt-get update \
 
 WORKDIR /tmp/box64
 
+# Box64 0.4.4 omits this libogg 1.3.x symbol even though Valheim's
+# libparty.so imports it. Keep the patch explicit until upstream wraps it.
 RUN curl --fail --location --show-error --silent --retry 3 \
         "https://github.com/ptitSeb/box64/archive/refs/tags/v${BOX64_VERSION}.tar.gz" \
         --output box64.tar.gz \
     && echo "${BOX64_SHA256}  box64.tar.gz" | sha256sum --check --strict \
     && mkdir source build \
     && tar --extract --gzip --file box64.tar.gz --strip-components=1 --directory source \
+    && sed --in-place \
+        's|^//GO(ogg_stream_pageout_fill,.*$|GO(ogg_stream_pageout_fill, iFppi)|' \
+        source/src/wrapped/wrappedlibogg_private.h \
+    && grep --fixed-strings --line-regexp \
+        'GO(ogg_stream_pageout_fill, iFppi)' \
+        source/src/wrapped/wrappedlibogg_private.h \
     && cmake \
         -S source \
         -B build \
@@ -84,6 +90,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
     DOTNET_BUNDLE_EXTRACT_BASE_DIR=/tmp/dotnet-bundle \
     BOX64_LOG=0 \
     BOX64_DYNAREC=1 \
+    BOX64_LD_PRELOAD=libogg.so.0 \
     SERVER_NAME="Valheim ARM64" \
     WORLD_NAME="Dedicated" \
     SERVER_PORT=2456 \
@@ -107,6 +114,7 @@ RUN apt-get update \
         libglib2.0-0 \
         libgssapi-krb5-2 \
         libicu76 \
+        libogg0 \
         libpulse-dev \
         libpulse-mainloop-glib0 \
         libpulse0 \
