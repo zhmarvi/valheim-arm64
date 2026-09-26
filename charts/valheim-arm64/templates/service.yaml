@@ -1,0 +1,52 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "valheim.fullname" . }}
+  labels:
+    {{- include "valheim.mergedLabels" (list . .Values.service.labels) | nindent 4 }}
+  {{- with .Values.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.service.type }}
+  {{- with .Values.service.loadBalancerClass }}
+  loadBalancerClass: {{ . }}
+  {{- end }}
+  {{- with .Values.service.loadBalancerIP }}
+  loadBalancerIP: {{ . }}
+  {{- end }}
+  {{- with .Values.service.loadBalancerSourceRanges }}
+  loadBalancerSourceRanges:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with .Values.service.externalTrafficPolicy }}
+  externalTrafficPolicy: {{ . }}
+  {{- end }}
+  {{- if kindIs "bool" .Values.service.allocateLoadBalancerNodePorts }}
+  allocateLoadBalancerNodePorts: {{ .Values.service.allocateLoadBalancerNodePorts }}
+  {{- end }}
+  selector:
+    {{- include "valheim.selectorLabels" . | nindent 4 }}
+  ports:
+    - name: game
+      port: {{ .Values.server.port }}
+      protocol: UDP
+      targetPort: game
+      {{- with .Values.service.nodePorts.game }}
+      nodePort: {{ . }}
+      {{- end }}
+    - name: query
+      port: {{ add .Values.server.port 1 }}
+      protocol: UDP
+      targetPort: query
+      {{- with .Values.service.nodePorts.query }}
+      nodePort: {{ . }}
+      {{- end }}
+    - name: steam
+      port: {{ add .Values.server.port 2 }}
+      protocol: UDP
+      targetPort: steam
+      {{- with .Values.service.nodePorts.steam }}
+      nodePort: {{ . }}
+      {{- end }}

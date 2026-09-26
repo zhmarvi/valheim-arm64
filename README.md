@@ -40,9 +40,41 @@ docker compose logs --follow valheim
 
 The initial download can take several minutes. Stop with `docker compose down`; do not add `--volumes` unless you intend to remove the installation cache and saved world.
 
-## Deploy to Kubernetes
+## Deploy to Kubernetes with Helm
 
-First edit `k8s/base/kustomization.yaml` and replace `ghcr.io/replace-me/valheim-arm64` with the image published by your repository. Then create the namespace and password Secret without committing the password:
+The chart in [`charts/valheim-arm64`](charts/valheim-arm64) is the recommended Kubernetes installation method. Create the password outside Helm so it is not stored in Helm release values or history:
+
+```bash
+kubectl create namespace valheim
+kubectl --namespace valheim create secret generic valheim-secret \
+  --from-literal=server-password='CHOOSE-A-PRIVATE-PASSWORD'
+helm upgrade --install valheim ./charts/valheim-arm64 \
+  --namespace valheim \
+  --set server.existingSecret.name=valheim-secret
+kubectl --namespace valheim rollout status \
+  statefulset/valheim-valheim-arm64 --timeout=15m
+kubectl --namespace valheim logs --follow \
+  statefulset/valheim-valheim-arm64
+```
+
+The chart defaults to `ghcr.io/zhmarvi/valheim-arm64:latest`. Set `image.repository` if you publish the image from a fork. It derives all three UDP ports from `server.port`, supports LoadBalancer/NodePort/ClusterIP Services, and allows storage classes or existing claims to be configured. See the [chart README](charts/valheim-arm64/README.md) and [`values.yaml`](charts/valheim-arm64/values.yaml) for all options.
+
+Inspect the external address with:
+
+```bash
+kubectl --namespace valheim get service valheim-valheim-arm64
+```
+
+If `EXTERNAL-IP` remains pending, install/configure a UDP-capable load balancer or change `service.type`. Home-hosted clusters also need all three UDP ports forwarded from the router to the load-balancer address.
+
+The default Helm release creates:
+
+- `server-valheim-valheim-arm64-0`, a 5 GiB installation/update cache mounted at `/opt/valheim`.
+- `config-valheim-valheim-arm64-0`, a 2 GiB world/config volume mounted at `/config`. Back up this claim.
+
+### Kustomize alternative
+
+The static manifests remain available for installations that do not use Helm. Edit `k8s/base/kustomization.yaml` and replace `ghcr.io/replace-me/valheim-arm64` with the image published by your repository, then run:
 
 ```bash
 kubectl apply -f k8s/base/namespace.yaml
@@ -50,26 +82,11 @@ kubectl --namespace valheim create secret generic valheim-secret \
   --from-literal=server-password='CHOOSE-A-PRIVATE-PASSWORD' \
   --dry-run=client --output=yaml | kubectl apply -f -
 kubectl apply -k k8s/base
-kubectl --namespace valheim rollout status statefulset/valheim --timeout=15m
-kubectl --namespace valheim logs --follow statefulset/valheim
 ```
-
-Inspect the external address with:
-
-```bash
-kubectl --namespace valheim get service valheim
-```
-
-If `EXTERNAL-IP` remains pending, install/configure a UDP-capable load balancer or change the Service to match your cluster. Home-hosted clusters also need UDP 2456-2458 forwarded from the router to the load-balancer address.
-
-The StatefulSet creates:
-
-- `server-valheim-0`, a 5 GiB installation/update cache mounted at `/opt/valheim`.
-- `config-valheim-0`, a 2 GiB world/config volume mounted at `/config`. Back up this claim.
 
 ## Configuration
 
-Compose reads these values from `.env`; Kubernetes reads non-secret values from `k8s/base/configmap.yaml`.
+Compose reads environment variables from `.env`; Kustomize reads non-secret values from `k8s/base/configmap.yaml`. Helm exposes the corresponding settings under `server` in the chart values.
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
@@ -86,7 +103,7 @@ Compose reads these values from `.env`; Kubernetes reads non-secret values from 
 | `BACKUP_SHORT` | `7200` | Short backup interval in seconds |
 | `BACKUP_LONG` | `43200` | Long backup interval in seconds |
 
-`SERVER_PORT_END` is Compose-only. If the server port changes in Kubernetes, update the ConfigMap, container ports, and Service ports together. Valheim necessarily receives the password as a process argument. Kubernetes Secrets prevent it from being committed to Git, but cluster administrators with pod-debug permissions can still inspect it.
+`SERVER_PORT_END` is Compose-only. Helm derives the complete port range from `server.port`; Kustomize users must update the ConfigMap, container ports, and Service ports together. Valheim necessarily receives the password as a process argument. Kubernetes Secrets prevent it from being committed to Git, but cluster administrators with pod-debug permissions can still inspect it.
 
 ## Wine and compatibility conclusion
 
@@ -103,7 +120,7 @@ make validate
 make build IMAGE=valheim-arm64:local
 ```
 
-`make validate` checks shell syntax, ShellCheck findings, Kustomize rendering, and Compose configuration when the corresponding tools are installed. The GitHub workflow performs the ARM64 Buildx build under QEMU and publishes to GHCR on `main`, version tags, manual runs, and the weekly refresh.
+`make validate` checks shell syntax, ShellCheck findings, Kustomize rendering, Helm linting/rendering, YAML lint, and Compose configuration when the corresponding tools are installed. The GitHub workflow performs the ARM64 Buildx build under QEMU and publishes to GHCR on `main`, version tags, manual runs, and the weekly refresh.
 
 ## Publish as a new public GitHub repository
 
@@ -113,7 +130,7 @@ After reviewing the files and creating the initial commit, GitHub CLI can create
 gh repo create valheim-arm64 --public --source=. --remote=origin --push
 ```
 
-Then edit the Kubernetes image name to `ghcr.io/YOUR_GITHUB_USER/valheim-arm64`, push that change, and make the GHCR package public in its package settings if anonymous cluster pulls are required.
+Then update the Helm `image.repository` value and Kustomize image name to `ghcr.io/YOUR_GITHUB_USER/valheim-arm64`, push that change, and make the GHCR package public in its package settings if anonymous cluster pulls are required.
 
 ## Licenses
 

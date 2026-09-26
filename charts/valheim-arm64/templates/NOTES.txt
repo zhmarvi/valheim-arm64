@@ -1,0 +1,19 @@
+Valheim ARM64 has been installed as {{ include "valheim.fullname" . }}.
+
+The first startup downloads and validates the Valheim server and can take several minutes.
+Watch it with:
+  kubectl --namespace {{ .Release.Namespace }} rollout status statefulset/{{ include "valheim.fullname" . }} --timeout=15m
+  kubectl --namespace {{ .Release.Namespace }} logs --follow statefulset/{{ include "valheim.fullname" . }}
+
+{{- if eq .Values.service.type "LoadBalancer" }}
+Find the external address with:
+  kubectl --namespace {{ .Release.Namespace }} get service {{ include "valheim.fullname" . }}
+{{- else if eq .Values.service.type "NodePort" }}
+Find the allocated UDP node ports with:
+  kubectl --namespace {{ .Release.Namespace }} get service {{ include "valheim.fullname" . }}
+{{- else }}
+The Service type is {{ .Values.service.type }}. Configure an external UDP route to the Service before connecting.
+{{- end }}
+
+Allow and forward UDP {{ .Values.server.port }}-{{ add .Values.server.port 2 }} to the Service address.
+Back up the /config persistent volume; it contains worlds, saves, and backups.

@@ -1,0 +1,17 @@
+apiVersion: v2
+name: valheim-arm64
+description: Valheim dedicated server for ARM64 Kubernetes nodes
+type: application
+version: 0.1.0
+appVersion: latest
+kubeVersion: ">=1.23.0-0"
+home: https://github.com/zhmarvi/valheim-arm64
+sources:
+  - https://github.com/zhmarvi/valheim-arm64
+maintainers:
+  - name: zhmarvi
+annotations:
+  artifacthub.io/license: MIT
+  artifacthub.io/changes: |
+    - kind: added
+      description: Initial Helm chart for the ARM64 Valheim server

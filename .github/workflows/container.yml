@@ -29,7 +29,8 @@ jobs:
       - uses: azure/setup-kubectl@v4
         with:
           version: v1.33.0
-      - name: Validate scripts and manifests
+      - uses: azure/setup-helm@v4
+      - name: Validate scripts, manifests, and Helm chart
         run: ./scripts/validate.sh
 
   build:

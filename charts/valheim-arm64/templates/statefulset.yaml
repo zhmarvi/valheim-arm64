@@ -1,0 +1,223 @@
+{{- include "valheim.validateValues" . }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "valheim.fullname" . }}
+  labels:
+    {{- include "valheim.labels" . | nindent 4 }}
+spec:
+  serviceName: {{ include "valheim.fullname" . }}-headless
+  replicas: 1
+  updateStrategy:
+    type: {{ .Values.updateStrategy.type }}
+  selector:
+    matchLabels:
+      {{- include "valheim.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "valheim.mergedLabels" (list . .Values.podLabels) | nindent 8 }}
+      annotations:
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        {{- if not .Values.server.existingSecret.name }}
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+        {{- end }}
+    spec:
+      automountServiceAccountToken: {{ .Values.automountServiceAccountToken }}
+      terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- range . }}
+        - name: {{ if kindIs "string" . }}{{ . }}{{ else }}{{ .name }}{{ end }}
+        {{- end }}
+      {{- end }}
+      {{- with .Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.topologySpreadConstraints }}
+      topologySpreadConstraints:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.priorityClassName }}
+      priorityClassName: {{ . }}
+      {{- end }}
+      {{- with .Values.runtimeClassName }}
+      runtimeClassName: {{ . }}
+      {{- end }}
+      {{- with .Values.schedulerName }}
+      schedulerName: {{ . }}
+      {{- end }}
+      containers:
+        - name: valheim
+          image: {{ include "valheim.image" . | quote }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "valheim.fullname" . }}
+            {{- with .Values.extraEnvFrom }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          env:
+            - name: SERVER_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "valheim.secretName" . }}
+                  key: {{ .Values.server.existingSecret.key }}
+            {{- with .Values.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          ports:
+            - name: game
+              containerPort: {{ .Values.server.port }}
+              protocol: UDP
+            - name: query
+              containerPort: {{ add .Values.server.port 1 }}
+              protocol: UDP
+            - name: steam
+              containerPort: {{ add .Values.server.port 2 }}
+              protocol: UDP
+          {{- with .Values.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.containerSecurityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- if .Values.startupProbe.enabled }}
+          startupProbe:
+            exec:
+              command:
+                - /usr/local/bin/healthcheck.sh
+            failureThreshold: {{ .Values.startupProbe.failureThreshold }}
+            periodSeconds: {{ .Values.startupProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.startupProbe.timeoutSeconds }}
+          {{- end }}
+          {{- if .Values.readinessProbe.enabled }}
+          readinessProbe:
+            exec:
+              command:
+                - /usr/local/bin/healthcheck.sh
+            failureThreshold: {{ .Values.readinessProbe.failureThreshold }}
+            periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.readinessProbe.timeoutSeconds }}
+          {{- end }}
+          {{- if .Values.livenessProbe.enabled }}
+          livenessProbe:
+            exec:
+              command:
+                - /usr/local/bin/healthcheck.sh
+            failureThreshold: {{ .Values.livenessProbe.failureThreshold }}
+            periodSeconds: {{ .Values.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds }}
+          {{- end }}
+          volumeMounts:
+            - name: server
+              mountPath: /opt/valheim
+            - name: config
+              mountPath: /config
+            - name: home
+              mountPath: /home/valheim
+            - name: run
+              mountPath: /run/valheim
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        {{- if .Values.persistence.server.existingClaim }}
+        - name: server
+          persistentVolumeClaim:
+            claimName: {{ .Values.persistence.server.existingClaim }}
+        {{- else if not .Values.persistence.server.enabled }}
+        - name: server
+          emptyDir: {}
+        {{- end }}
+        {{- if .Values.persistence.config.existingClaim }}
+        - name: config
+          persistentVolumeClaim:
+            claimName: {{ .Values.persistence.config.existingClaim }}
+        {{- else if not .Values.persistence.config.enabled }}
+        - name: config
+          emptyDir: {}
+        {{- end }}
+        - name: home
+          emptyDir:
+            {{- toYaml .Values.emptyDir.home | nindent 12 }}
+        - name: run
+          emptyDir:
+            {{- toYaml .Values.emptyDir.run | nindent 12 }}
+        - name: tmp
+          emptyDir:
+            {{- toYaml .Values.emptyDir.tmp | nindent 12 }}
+  {{- if or (and .Values.persistence.server.enabled (not .Values.persistence.server.existingClaim)) (and .Values.persistence.config.enabled (not .Values.persistence.config.existingClaim)) }}
+  volumeClaimTemplates:
+    {{- if and .Values.persistence.server.enabled (not .Values.persistence.server.existingClaim) }}
+    - metadata:
+        name: server
+        labels:
+          {{- include "valheim.labels" . | nindent 10 }}
+        {{- with .Values.persistence.server.annotations }}
+        annotations:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+      spec:
+        accessModes:
+          {{- toYaml .Values.persistence.server.accessModes | nindent 10 }}
+        {{- if eq .Values.persistence.server.storageClass "-" }}
+        storageClassName: ""
+        {{- else }}
+        {{- with .Values.persistence.server.storageClass }}
+        storageClassName: {{ . }}
+        {{- end }}
+        {{- end }}
+        {{- with .Values.persistence.server.selector }}
+        selector:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.persistence.server.size }}
+    {{- end }}
+    {{- if and .Values.persistence.config.enabled (not .Values.persistence.config.existingClaim) }}
+    - metadata:
+        name: config
+        labels:
+          {{- include "valheim.labels" . | nindent 10 }}
+        {{- with .Values.persistence.config.annotations }}
+        annotations:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+      spec:
+        accessModes:
+          {{- toYaml .Values.persistence.config.accessModes | nindent 10 }}
+        {{- if eq .Values.persistence.config.storageClass "-" }}
+        storageClassName: ""
+        {{- else }}
+        {{- with .Values.persistence.config.storageClass }}
+        storageClassName: {{ . }}
+        {{- end }}
+        {{- end }}
+        {{- with .Values.persistence.config.selector }}
+        selector:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.persistence.config.size }}
+    {{- end }}
+  {{- end }}

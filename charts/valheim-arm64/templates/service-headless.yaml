@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "valheim.fullname" . }}-headless
+  labels:
+    {{- include "valheim.mergedLabels" (list . .Values.headlessService.labels) | nindent 4 }}
+  {{- with .Values.headlessService.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  clusterIP: None
+  publishNotReadyAddresses: {{ .Values.headlessService.publishNotReadyAddresses }}
+  selector:
+    {{- include "valheim.selectorLabels" . | nindent 4 }}
+  ports:
+    - name: game
+      port: {{ .Values.server.port }}
+      protocol: UDP
+      targetPort: game
+    - name: query
+      port: {{ add .Values.server.port 1 }}
+      protocol: UDP
+      targetPort: query
+    - name: steam
+      port: {{ add .Values.server.port 2 }}
+      protocol: UDP
+      targetPort: steam

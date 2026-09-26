@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "valheim.fullname" . }}
+  labels:
+    {{- include "valheim.labels" . | nindent 4 }}
+data:
+  SERVER_NAME: {{ .Values.server.name | quote }}
+  WORLD_NAME: {{ .Values.server.worldName | quote }}
+  SERVER_PORT: {{ .Values.server.port | quote }}
+  SERVER_PUBLIC: {{ .Values.server.public | quote }}
+  SERVER_CROSSPLAY: {{ .Values.server.crossplay | quote }}
+  UPDATE_ON_START: {{ .Values.server.updateOnStart | quote }}
+  SAVE_INTERVAL: {{ .Values.server.saveInterval | quote }}
+  BACKUPS: {{ .Values.server.backups.count | quote }}
+  BACKUP_SHORT: {{ .Values.server.backups.shortInterval | quote }}
+  BACKUP_LONG: {{ .Values.server.backups.longInterval | quote }}

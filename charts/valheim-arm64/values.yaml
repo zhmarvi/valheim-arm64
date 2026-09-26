@@ -1,0 +1,134 @@
+nameOverride: ""
+fullnameOverride: ""
+commonLabels: {}
+
+image:
+  repository: ghcr.io/zhmarvi/valheim-arm64
+  tag: latest
+  digest: ""
+  pullPolicy: Always
+imagePullSecrets: []
+
+server:
+  name: Valheim ARM64
+  worldName: Dedicated
+  # The first of three consecutive UDP ports used by Valheim.
+  port: 2456
+  public: 1
+  crossplay: false
+  updateOnStart: true
+  saveInterval: 1800
+  backups:
+    count: 4
+    shortInterval: 7200
+    longInterval: 43200
+  # Setting a password here stores it in Helm release history. Prefer existingSecret.
+  password: ""
+  existingSecret:
+    name: ""
+    key: server-password
+
+service:
+  type: LoadBalancer
+  annotations: {}
+  labels: {}
+  loadBalancerClass: ""
+  loadBalancerIP: ""
+  loadBalancerSourceRanges: []
+  externalTrafficPolicy: ""
+  allocateLoadBalancerNodePorts: null
+  nodePorts:
+    game: null
+    query: null
+    steam: null
+
+headlessService:
+  annotations: {}
+  labels: {}
+  publishNotReadyAddresses: false
+
+persistence:
+  server:
+    enabled: true
+    existingClaim: ""
+    storageClass: ""
+    accessModes:
+      - ReadWriteOnce
+    size: 5Gi
+    annotations: {}
+    selector: {}
+  config:
+    enabled: true
+    existingClaim: ""
+    storageClass: ""
+    accessModes:
+      - ReadWriteOnce
+    size: 2Gi
+    annotations: {}
+    selector: {}
+
+podAnnotations: {}
+podLabels: {}
+automountServiceAccountToken: false
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+  fsGroupChangePolicy: OnRootMismatch
+  seccompProfile:
+    type: RuntimeDefault
+
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  privileged: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+
+resources:
+  requests:
+    cpu: "1"
+    memory: 2Gi
+  limits:
+    cpu: "4"
+    memory: 6Gi
+
+startupProbe:
+  enabled: true
+  failureThreshold: 60
+  periodSeconds: 10
+  timeoutSeconds: 5
+readinessProbe:
+  enabled: true
+  failureThreshold: 3
+  periodSeconds: 15
+  timeoutSeconds: 5
+livenessProbe:
+  enabled: true
+  failureThreshold: 3
+  periodSeconds: 30
+  timeoutSeconds: 5
+
+terminationGracePeriodSeconds: 120
+updateStrategy:
+  type: RollingUpdate
+
+nodeSelector:
+  kubernetes.io/arch: arm64
+tolerations: []
+affinity: {}
+topologySpreadConstraints: []
+priorityClassName: ""
+runtimeClassName: ""
+schedulerName: ""
+
+emptyDir:
+  home: {}
+  run: {}
+  tmp: {}
+
+extraEnv: []
+extraEnvFrom: []

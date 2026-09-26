@@ -60,7 +60,7 @@ prepare_steam_runtime() {
   chmod u+x "${SERVER_BINARY}"
 }
 
-# shellcheck disable=SC2329  # Invoked indirectly by the signal trap.
+# shellcheck disable=SC2317,SC2329  # Invoked indirectly by the signal trap.
 forward_shutdown() {
   if [[ -n "${child_pid}" ]] && kill -0 "${child_pid}" 2>/dev/null; then
     log "Requesting a clean Valheim shutdown."
