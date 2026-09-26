@@ -26,7 +26,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install validation tools
         run: sudo apt-get update && sudo apt-get install --yes shellcheck yamllint
-      - uses: azure/setup-kubectl@v4
+      - uses: azure/setup-kubectl@v5
         with:
           version: v1.33.0
       - uses: azure/setup-helm@v4
