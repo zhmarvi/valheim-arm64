@@ -122,6 +122,22 @@ make build IMAGE=valheim-arm64:local
 
 `make validate` checks shell syntax, ShellCheck findings, Kustomize rendering, Helm linting/rendering, YAML lint, and Compose configuration when the corresponding tools are installed. The GitHub workflow performs the ARM64 Buildx build under QEMU and publishes to GHCR on `main`, version tags, manual runs, and the weekly refresh.
 
+### Published image tags
+
+Every published image receives an immutable UTC timestamp tag in the form `build-YYYYMMDD-HHmmss`, for example `build-20260926-174532`. Successful default-branch builds also move the convenient `latest` alias to that same image. Git tags beginning with `v` additionally publish semantic-version tags.
+
+Use `latest` to follow new default-branch builds automatically, or pin a timestamp tag for a repeatable deployment:
+
+```yaml
+image:
+  repository: ghcr.io/zhmarvi/valheim-arm64
+  tag: build-20260926-174532
+  digest: ""
+  pullPolicy: IfNotPresent
+```
+
+An OCI digest remains the strongest immutable pin.
+
 ## Publish as a new public GitHub repository
 
 After reviewing the files and creating the initial commit, GitHub CLI can create and push the public repository in one command:

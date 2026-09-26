@@ -40,7 +40,7 @@ kubectl --namespace valheim get service valheim-valheim-arm64
 | Value | Default | Description |
 | --- | --- | --- |
 | `image.repository` | `ghcr.io/zhmarvi/valheim-arm64` | Container image repository |
-| `image.tag` | `latest` | Image tag; prefer a version tag for repeatable deployments |
+| `image.tag` | `latest` | Moving default-branch alias; use a `build-YYYYMMDD-HHmmss` tag for repeatable deployments |
 | `server.name` | `Valheim ARM64` | Public server name |
 | `server.worldName` | `Dedicated` | World save name |
 | `server.port` | `2456` | First of three consecutive UDP ports; all manifests derive the other two |
@@ -54,6 +54,8 @@ kubectl --namespace valheim get service valheim-valheim-arm64
 | `persistence.config.size` | `2Gi` | World, save, and backup claim size |
 | `resources.requests` | `1 CPU`, `2Gi` | Scheduler reservation |
 | `resources.limits` | `4 CPU`, `6Gi` | Container limits |
+
+Every published image has a UTC timestamp tag such as `build-20260926-174532`. Default-branch builds also update `latest`. Set `image.tag` to a timestamp tag and `image.pullPolicy: IfNotPresent` to keep a known build, or use `image.digest` for a fully immutable deployment.
 
 See `values.yaml` for service annotations, storage classes, existing claims, security contexts, scheduling, probes, and resource controls.
 
