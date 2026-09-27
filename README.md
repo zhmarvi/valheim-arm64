@@ -138,16 +138,6 @@ image:
 
 An OCI digest remains the strongest immutable pin.
 
-## Publish as a new public GitHub repository
-
-After reviewing the files and creating the initial commit, GitHub CLI can create and push the public repository in one command:
-
-```bash
-gh repo create valheim-arm64 --public --source=. --remote=origin --push
-```
-
-Then update the Helm `image.repository` value and Kustomize image name to `ghcr.io/YOUR_GITHUB_USER/valheim-arm64`, push that change, and make the GHCR package public in its package settings if anonymous cluster pulls are required.
-
 ## Licenses
 
 Repository code is MIT licensed. Box64, DepotDownloader, Debian packages, and Valheim retain their own licenses; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). The proprietary Valheim payload is downloaded from Steam at runtime and is not redistributed by this repository image.
