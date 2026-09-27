@@ -115,7 +115,6 @@ RUN apt-get update \
         libgssapi-krb5-2 \
         libicu76 \
         libogg0 \
-        libpulse-dev \
         libpulse-mainloop-glib0 \
         libpulse0 \
         libsdl2-2.0-0 \

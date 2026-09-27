@@ -75,3 +75,33 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- fail "a server password is required: set server.existingSecret.name (recommended) or server.password" -}}
 {{- end -}}
 {{- end }}
+
+{{/* Name resources used by the scheduled restart job. */}}
+{{- define "valheim.restartName" -}}
+{{- printf "%s-restart" (include "valheim.fullname" .) | trunc 63 | trimSuffix "-" }}
+{{- end }}
+
+{{/* Label scheduled maintenance resources separately from the game server. */}}
+{{- define "valheim.restartLabels" -}}
+{{- $labels := include "valheim.labels" . | fromYaml -}}
+{{- $_ := set $labels "app.kubernetes.io/component" "maintenance" -}}
+{{- toYaml $labels }}
+{{- end }}
+
+{{/* Merge CronJob labels without allowing chart identity overrides. */}}
+{{- define "valheim.restartMergedLabels" -}}
+{{- $root := index . 0 -}}
+{{- $custom := index . 1 | default dict -}}
+{{- $labels := include "valheim.restartLabels" $root | fromYaml -}}
+{{- $labels = merge $labels $custom -}}
+{{- toYaml $labels }}
+{{- end }}
+
+{{/* Resolve the pinned kubectl image used by the scheduled restart job. */}}
+{{- define "valheim.restartImage" -}}
+{{- if .Values.restartCronJob.image.digest -}}
+{{- printf "%s@%s" .Values.restartCronJob.image.repository .Values.restartCronJob.image.digest -}}
+{{- else -}}
+{{- printf "%s:%s" .Values.restartCronJob.image.repository .Values.restartCronJob.image.tag -}}
+{{- end -}}
+{{- end }}

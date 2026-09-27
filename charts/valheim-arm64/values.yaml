@@ -132,3 +132,46 @@ emptyDir:
 
 extraEnv: []
 extraEnvFrom: []
+
+# Restarts the StatefulSet daily so UPDATE_ON_START can validate game files.
+restartCronJob:
+  enabled: true
+  schedule: "0 6 * * *"
+  timeZone: Etc/UTC
+  concurrencyPolicy: Forbid
+  suspend: false
+  startingDeadlineSeconds: 600
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  backoffLimit: 2
+  ttlSecondsAfterFinished: 86400
+  image:
+    repository: registry.k8s.io/kubectl
+    tag: v1.33.0
+    digest: sha256:f34045623d83213df513fe9b395b793ebe29941bf3836e3496bd3600ae7677ee
+    pullPolicy: IfNotPresent
+  podAnnotations: {}
+  podLabels: {}
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 65532
+    runAsGroup: 65532
+    seccompProfile:
+      type: RuntimeDefault
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    privileged: false
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop:
+        - ALL
+  resources:
+    requests:
+      cpu: 10m
+      memory: 16Mi
+    limits:
+      cpu: 100m
+      memory: 64Mi
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}

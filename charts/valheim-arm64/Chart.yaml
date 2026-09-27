@@ -2,9 +2,9 @@ apiVersion: v2
 name: valheim-arm64
 description: Valheim dedicated server for ARM64 Kubernetes nodes
 type: application
-version: 0.1.0
+version: 0.2.0
 appVersion: latest
-kubeVersion: ">=1.23.0-0"
+kubeVersion: ">=1.33.0-0"
 home: https://github.com/zhmarvi/valheim-arm64
 sources:
   - https://github.com/zhmarvi/valheim-arm64

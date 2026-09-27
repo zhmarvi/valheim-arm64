@@ -4,7 +4,7 @@ Deploys one Valheim dedicated server on an ARM64 Kubernetes node. The chart pres
 
 ## Prerequisites
 
-- Kubernetes 1.23 or newer with an `arm64` node
+- Kubernetes 1.33 or newer with an `arm64` node
 - Helm 3 or newer
 - A default StorageClass, unless existing claims or explicit storage classes are configured
 - A UDP-capable `LoadBalancer`, or a different `service.type` and external UDP routing
@@ -52,6 +52,9 @@ kubectl --namespace valheim get service valheim-valheim-arm64
 | `service.type` | `LoadBalancer` | External Service type |
 | `persistence.server.size` | `5Gi` | Installation and update-cache claim size |
 | `persistence.config.size` | `2Gi` | World, save, and backup claim size |
+| `restartCronJob.enabled` | `true` | Create the scheduled StatefulSet restart job and RBAC |
+| `restartCronJob.schedule` | `0 6 * * *` | Daily restart schedule interpreted in `restartCronJob.timeZone` |
+| `restartCronJob.timeZone` | `Etc/UTC` | IANA timezone used by the CronJob controller |
 | `resources.requests` | `1 CPU`, `2Gi` | Scheduler reservation |
 | `resources.limits` | `4 CPU`, `6Gi` | Container limits |
 
@@ -67,6 +70,30 @@ The StatefulSet creates two claims by default:
 - `config-<statefulset>-0`, mounted at `/config`, contains worlds, saves, and backups. Back up this claim.
 
 Set `persistence.<name>.existingClaim` to mount an existing claim, or set `enabled: false` to use non-persistent `emptyDir` storage. StatefulSet claim templates are generally not mutable after creation. Changing a size or storage class may require expanding the PVC directly or migrating to a new claim. Helm uninstall does not normally delete StatefulSet-created PVCs.
+
+## Scheduled restart
+
+The chart creates a CronJob by default that runs at `06:00 Etc/UTC` every day and performs `kubectl rollout restart` against only this release's StatefulSet. The restart gives Valheim a clean `SIGINT` shutdown and, because `server.updateOnStart` defaults to `true`, validates game files when the replacement pod starts.
+
+The job uses a dedicated ServiceAccount and a namespace-scoped Role limited to `get` and `patch` on the named StatefulSet. Its official multi-architecture `kubectl` image is pinned by digest. Kubernetes 1.33 or newer is required for stable CronJob `timeZone` support.
+
+Disable the CronJob and all of its RBAC resources with:
+
+```yaml
+restartCronJob:
+  enabled: false
+```
+
+Change the schedule or timezone independently when needed:
+
+```yaml
+restartCronJob:
+  enabled: true
+  schedule: "0 6 * * *"
+  timeZone: Etc/UTC
+```
+
+A scheduled restart causes brief server downtime. Players should disconnect before the configured time so the graceful shutdown can save the world.
 
 ## Networking and operation
 

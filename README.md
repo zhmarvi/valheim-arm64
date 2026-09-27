@@ -122,6 +122,12 @@ make build IMAGE=valheim-arm64:local
 
 `make validate` checks shell syntax, ShellCheck findings, Kustomize rendering, Helm linting/rendering, YAML lint, and Compose configuration when the corresponding tools are installed. The GitHub workflow performs the ARM64 Buildx build under QEMU and publishes to GHCR on `main`, version tags, manual runs, and the weekly refresh.
 
+### Container and host security updates
+
+Every published image is scanned with checksum-pinned Trivy tooling. The workflow uploads a complete `trivy-report-<commit>` JSON artifact for 30 days, then fails if a high or critical OS/library vulnerability has a fixed package available. Unfixed findings remain visible in the report without permanently blocking Debian-based builds; the weekly rebuild incorporates fixes after they reach Trixie.
+
+Container scanning does not cover the Kubernetes node's kernel because containers share the Raspberry Pi host kernel. Keep Raspberry Pi OS, k3s, firmware, and kernel packages updated independently, reboot when kernel updates require it, and use your node operating system's security advisories as the authority for host-kernel exposure.
+
 ### Published image tags
 
 Every published image receives an immutable UTC timestamp tag in the form `build-YYYYMMDD-HHmmss`, for example `build-20260926-174532`. Successful default-branch builds also move the convenient `latest` alias to that same image. Git tags beginning with `v` additionally publish semantic-version tags.

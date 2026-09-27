@@ -1,0 +1,77 @@
+{{- if .Values.restartCronJob.enabled }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "valheim.restartName" . }}
+  labels:
+    {{- include "valheim.restartLabels" . | nindent 4 }}
+spec:
+  schedule: {{ .Values.restartCronJob.schedule | quote }}
+  timeZone: {{ .Values.restartCronJob.timeZone | quote }}
+  concurrencyPolicy: {{ .Values.restartCronJob.concurrencyPolicy }}
+  suspend: {{ .Values.restartCronJob.suspend }}
+  startingDeadlineSeconds: {{ .Values.restartCronJob.startingDeadlineSeconds }}
+  successfulJobsHistoryLimit: {{ .Values.restartCronJob.successfulJobsHistoryLimit }}
+  failedJobsHistoryLimit: {{ .Values.restartCronJob.failedJobsHistoryLimit }}
+  jobTemplate:
+    metadata:
+      labels:
+        {{- include "valheim.restartLabels" . | nindent 8 }}
+    spec:
+      backoffLimit: {{ .Values.restartCronJob.backoffLimit }}
+      ttlSecondsAfterFinished: {{ .Values.restartCronJob.ttlSecondsAfterFinished }}
+      template:
+        metadata:
+          labels:
+            {{- include "valheim.restartMergedLabels" (list . .Values.restartCronJob.podLabels) | nindent 12 }}
+          {{- with .Values.restartCronJob.podAnnotations }}
+          annotations:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+        spec:
+          serviceAccountName: {{ include "valheim.restartName" . }}
+          automountServiceAccountToken: true
+          restartPolicy: Never
+          {{- with .Values.imagePullSecrets }}
+          imagePullSecrets:
+            {{- range . }}
+            - name: {{ if kindIs "string" . }}{{ . }}{{ else }}{{ .name }}{{ end }}
+            {{- end }}
+          {{- end }}
+          {{- with .Values.restartCronJob.podSecurityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.restartCronJob.nodeSelector }}
+          nodeSelector:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.restartCronJob.affinity }}
+          affinity:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.restartCronJob.tolerations }}
+          tolerations:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          containers:
+            - name: restart-statefulset
+              image: {{ include "valheim.restartImage" . | quote }}
+              imagePullPolicy: {{ .Values.restartCronJob.image.pullPolicy }}
+              command:
+                - /bin/kubectl
+              args:
+                - rollout
+                - restart
+                - statefulset/{{ include "valheim.fullname" . }}
+                - --namespace
+                - {{ .Release.Namespace }}
+              {{- with .Values.restartCronJob.containerSecurityContext }}
+              securityContext:
+                {{- toYaml . | nindent 16 }}
+              {{- end }}
+              {{- with .Values.restartCronJob.resources }}
+              resources:
+                {{- toYaml . | nindent 16 }}
+              {{- end }}
+{{- end }}

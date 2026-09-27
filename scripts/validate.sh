@@ -31,6 +31,10 @@ if command -v helm >/dev/null 2>&1; then
     --set persistence.server.existingClaim=valheim-server \
     --set persistence.config.enabled=false \
     --set service.type=NodePort >/dev/null
+  helm template validation-no-restart "${chart_dir}" \
+    --namespace valheim \
+    --set server.existingSecret.name=valheim-secret \
+    --set restartCronJob.enabled=false >/dev/null
 else
   printf 'warning: Helm is not installed; skipping chart validation\n' >&2
 fi
