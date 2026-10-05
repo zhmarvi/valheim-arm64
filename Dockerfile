@@ -104,6 +104,8 @@ ENV DEBIAN_FRONTEND=noninteractive \
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
+COPY --chmod=0755 scripts/security-updates.sh /usr/local/bin/security-updates.sh
+
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         ca-certificates \
@@ -123,6 +125,7 @@ RUN apt-get update \
         libstdc++6 \
         tini \
         zlib1g \
+    && /usr/local/bin/security-updates.sh \
     && groupadd --gid "${PGID}" valheim \
     && useradd \
         --uid "${PUID}" \
