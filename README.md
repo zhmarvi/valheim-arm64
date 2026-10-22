@@ -126,6 +126,8 @@ make build IMAGE=valheim-arm64:local
 
 Every published image is scanned with checksum-pinned Trivy tooling. The workflow uploads a complete `trivy-report-<commit>` JSON artifact for 30 days, then fails if a high or critical OS/library vulnerability has a fixed package available. Unfixed findings remain visible in the report without permanently blocking Debian-based builds; the weekly rebuild incorporates fixes after they reach Trixie.
 
+CI pulls the current Debian base and bypasses the `runtime` stage cache on every build so package installation and targeted security upgrades actually run. The Box64 and DepotDownloader stages retain their build caches. For the same package refresh locally, use `docker buildx build --platform linux/arm64 --pull --no-cache-filter runtime --load -t valheim-arm64:local .`.
+
 Container scanning does not cover the Kubernetes node's kernel because containers share the Raspberry Pi host kernel. Keep Raspberry Pi OS, k3s, firmware, and kernel packages updated independently, reboot when kernel updates require it, and use your node operating system's security advisories as the authority for host-kernel exposure.
 
 ### Published image tags

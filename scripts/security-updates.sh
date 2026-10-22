@@ -17,11 +17,16 @@ set -Eeuo pipefail
 #   - libpcre2-8-0            CVE-2026-103111 (pcre2 JIT out-of-bounds write)
 #   - libssl3t64, openssl,    CVE-2026-75804  (OpenSSL QUIC flow-control DoS)
 #     openssl-provider-legacy CVE-2026-84782  (OpenSSL DTLS info disclosure)
+#   - libcurl4t64            CVE-2026-8286, CVE-2026-8927, CVE-2026-92392
+#   - libexpat1              CVE-2026-66046, CVE-2026-76956, CVE-2026-76957,
+#                            CVE-2026-77214, CVE-2026-93990
 
 # Packages to force to the newest available (security) version. Only list
 # packages already installed in the final image so an upgrade never pulls in
-# unexpected new dependencies.
+# unrelated packages. APT may update dependencies needed by these upgrades.
 readonly security_packages=(
+  libcurl4t64
+  libexpat1
   libpcre2-8-0
   libssl3t64
   openssl

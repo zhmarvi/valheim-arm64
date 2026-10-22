@@ -71,6 +71,9 @@ jobs:
         with:
           context: .
           platforms: linux/arm64
+          # Refresh Debian packages even when the base tag has not changed.
+          pull: true
+          no-cache-filters: runtime
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}

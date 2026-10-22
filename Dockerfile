@@ -71,7 +71,7 @@ RUN curl --fail --location --show-error --silent --retry 3 \
     && install -m 0644 depotdownloader-source.tar.gz \
         "/depot-root/usr/src/DepotDownloader-${DEPOTDOWNLOADER_VERSION}.tar.gz"
 
-FROM ${DEBIAN_IMAGE}
+FROM ${DEBIAN_IMAGE} AS runtime
 
 ARG PUID=1000
 ARG PGID=1000
